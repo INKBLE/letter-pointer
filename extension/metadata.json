@@ -1,0 +1,9 @@
+{
+  "uuid": "letter-pointer@inkble.local",
+  "name": "Letter Pointer",
+  "description": "Lightweight two-letter mouse selection for GNOME Wayland.",
+  "shell-version": ["51"],
+  "settings-schema": "org.gnome.shell.extensions.letter-pointer",
+  "version": 3,
+  "version-name": "0.3.0"
+}
