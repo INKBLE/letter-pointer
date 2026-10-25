@@ -40,6 +40,21 @@ export default class LetterPointer extends Extension {
     _open(preserveFocus = false) {
         if (this._overlay || this._clickTimer || Main.sessionMode.isLocked)
             return;
+        try {
+            this._openOverlay(preserveFocus);
+        } catch (error) {
+            console.error(`Letter Pointer: opening failed: ${error.stack ?? error}`);
+            this._close();
+        }
+    }
+
+    _openOverlay(preserveFocus) {
+        this._openedAt = GLib.get_monotonic_time();
+        this._painted = false;
+        console.log(`Letter Pointer: opening ${this.metadata['version-name']}`);
+        // Keep composition enabled while hints cover a directly scanned-out client.
+        global.compositor.disable_unredirect();
+        this._unredirectDisabled = true;
         // Overview needs a nested grab to keep letters out of search. Panel
         // popups must retain their own grab or they dismiss on loss of focus.
         preserveFocus = Main.actionMode === Shell.ActionMode.POPUP ||
@@ -79,11 +94,33 @@ export default class LetterPointer extends Extension {
             Main.notify('Letter Pointer', 'A selection key is already reserved by another shortcut.');
             return;
         }
+        this._requestFrame();
+        // A bounded retry also covers an idle stage; never keep an invisible grab.
+        this._frameRetry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            this._frameRetry = 0;
+            if (!this._painted)
+                this._requestFrame();
+            return GLib.SOURCE_REMOVE;
+        });
+        this._paintWatchdog = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
+            this._paintWatchdog = 0;
+            if (!this._painted) {
+                console.warn('Letter Pointer: no first repaint; releasing input');
+                this._close();
+            }
+            return GLib.SOURCE_REMOVE;
+        });
         this._timeout = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 30, () => {
             this._timeout = 0;
             this._close();
             return GLib.SOURCE_REMOVE;
         });
+    }
+
+    _requestFrame() {
+        this._drawing.queue_repaint();
+        global.stage.queue_redraw();
+        global.stage.schedule_update();
     }
 
     _grabMenuKeys() {
@@ -167,6 +204,10 @@ export default class LetterPointer extends Extension {
                 PangoCairo.show_layout(cr, layout);
                 cr.rectangle(label.x - 1, label.y - 1, 2, 2);
                 cr.fill();
+            }
+            if (!this._painted) {
+                this._painted = true;
+                console.log(`Letter Pointer: first repaint in ${(GLib.get_monotonic_time() - this._openedAt) / 1000} ms`);
             }
         } finally {
             cr.$dispose();
@@ -277,7 +318,7 @@ export default class LetterPointer extends Extension {
             global.stage.disconnect(this._captureSignal);
             this._captureSignal = 0;
         }
-        for (const name of ['_timeout', '_clickTimer']) {
+        for (const name of ['_timeout', '_clickTimer', '_frameRetry', '_paintWatchdog']) {
             if (this[name]) {
                 GLib.Source.remove(this[name]);
                 this[name] = 0;
@@ -291,6 +332,12 @@ export default class LetterPointer extends Extension {
             Main.layoutManager.removeChrome(this._overlay);
             this._overlay.destroy();
             this._overlay = null;
+        }
+        if (this._unredirectDisabled) {
+            global.compositor.enable_unredirect();
+            this._unredirectDisabled = false;
+            global.stage.queue_redraw();
+            global.stage.schedule_update();
         }
         this._drawing = null;
         this._labels = [];

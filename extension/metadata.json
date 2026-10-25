@@ -4,6 +4,6 @@
   "description": "Lightweight two-letter mouse selection for GNOME Wayland.",
   "shell-version": ["51"],
   "settings-schema": "org.gnome.shell.extensions.letter-pointer",
-  "version": 3,
-  "version-name": "0.3.0"
+  "version": 4,
+  "version-name": "0.3.1"
 }

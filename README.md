@@ -77,6 +77,16 @@ VS Code 等程序在菜单打开时会把 **Alt 按下**解释为关闭菜单。
 
 标签改为单个 Cairo/Pango 绘图层，避免每次打开创建上千个文字和圆点控件。性能数据和测量范围见 [验证记录](docs/VALIDATION.md)。
 
+0.3.1 在选点期间保持桌面合成并主动请求重绘，关闭后恢复。若首帧一直未绘制，1.5 秒后自动取消并释放输入（前提是 Shell 主循环仍能运行）。这针对“已触发但要切窗口才显示”的现象增加防护，尚不能保证解决所有显卡或应用组合的卡顿。
+
+若仍延迟，可查看激活与首帧绘制时间（不记录输入字母或程序名）：
+
+```bash
+journalctl --user -b --since '5 minutes ago' --grep 'Letter Pointer:'
+```
+
+日志中的首帧时间是绘制回调耗时范围，不代表显示器实际显示时刻。
+
 打开设置：
 
 ```bash
@@ -129,7 +139,7 @@ python3 scripts/build.py
 
 生成：
 
-- `dist/letter-pointer-0.3.0-source.zip`：完整源码、文档、脚本、测试，适合保存和分享。
+- `dist/letter-pointer-0.3.1-source.zip`：完整源码、文档、脚本、测试，适合保存和分享。
 - `dist/letter-pointer@inkble.local.shell-extension.zip`：GNOME 扩展安装包。
 - `dist/SHA256SUMS`：校验值。
 

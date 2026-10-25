@@ -45,5 +45,7 @@ app.connect('activate', () => {
             Popup: () => popup.popup(),
         });
     api.export(Gio.DBus.session, '/org/letterpointer/Fixture');
+    // Keep the exported object alive across GC during longer rendering tests.
+    app.fixtureApi = api;
 });
 app.run([]);

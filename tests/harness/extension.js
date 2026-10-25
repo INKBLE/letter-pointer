@@ -111,14 +111,36 @@ export default class IntegrationTest extends LetterPointer {
         await tap(1);
         await tap(183);
         check(Boolean(this._overlay) && Boolean(this._grab), 'F13 normal activation');
+        check(this._painted, 'normal activation repaints without another input event');
         const labels = this._labels;
         check(labels.length >= 468, 'default grid is denser');
         await tap(14);
         check(!this._overlay && !this._grab, 'normal mode releases grab');
+        check(!this._unredirectDisabled && !this._frameRetry && !this._paintWatchdog,
+            'cancel releases composition inhibition and frame timers');
+        window.make_fullscreen();
+        await sleep(400);
+        for (const preserveFocus of [false, true]) {
+            this._open(preserveFocus);
+            await sleep(250);
+            check(this._painted && this._overlay.is_mapped(),
+                `fullscreen overlay repaints while idle menu=${preserveFocus}`);
+            await tap(14);
+        }
+        window.unmake_fullscreen();
+        await sleep(300);
+        const paint = this._paint;
+        this._paint = () => {};
+        this._open();
+        await sleep(1700);
+        check(!this._overlay && !this._grab && !this._unredirectDisabled,
+            'missing first repaint releases input and composition inhibition');
+        this._paint = paint;
         Main.overview.show();
         await sleep(500);
         await tap(183);
         check(Boolean(this._overlay) && Boolean(this._grab), 'F13 activates from Overview');
+        check(this._painted, 'Overview overlay repaints without another key');
         await tap(14);
         check(!this._overlay && Main.overview.visible, 'backspace cancels without closing Overview');
         press(29); press(125); await tap(50); release(125); release(29);

@@ -1,4 +1,24 @@
-# Validation: 0.3.0
+# Validation: 0.3.1
+
+The 0.3.1 regression suite passes at 1280x720 and 2560x1600 on GNOME 51.1. It additionally
+checks a mapped, repainted overlay above an idle fullscreen GTK client in
+both activation modes, without subsequent input to stimulate painting.
+It checks composition inhibition and frame timer cleanup on cancellation.
+Suppressing the paint callback deliberately verifies that the 1.5-second
+watchdog releases the modal grab and composition inhibition. Existing
+popup preservation, Overview, keyboard handling, and actual clicks pass.
+The longer test exposed a garbage-collected fixture D-Bus export; the fixture
+now retains that object for its lifetime. Packaging/install/uninstall tests pass.
+
+These tests do not reproduce the reported stall on the user's foreground
+desktop, exercise physical direct scanout, or establish its root cause.
+The composition and scheduling changes are a targeted mitigation, with
+activation/first-repaint logs for follow-up. A repaint callback is not proof
+that a hardware display presented the overlay; the watchdog cannot run if
+the entire Shell main loop is blocked. Physical-session verification remains
+necessary after logout/login loads the updated extension.
+
+## Previous 0.3.0 baseline
 
 Test environment: Arch Linux, GNOME Shell 51.1, headless native Wayland,
 1280x720 and 2560x1600 logical resolutions, a separate D-Bus session and temporary XDG paths.

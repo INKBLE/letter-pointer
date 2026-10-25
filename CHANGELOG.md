@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+- Inhibit direct scanout only while the overlay is open; restore on every close.
+- Explicitly request a stage update and retry once if the first repaint is missing.
+- Release input after 1.5 seconds without a first repaint, and clean up failed opens.
+- Log activation and first repaint timing without recording application names or keys.
+- Test idle fullscreen rendering and simulated missing-repaint cleanup.
+
 ## 0.3.0
 
 - Activate in GNOME Overview and panel popups while excluding locked sessions.
